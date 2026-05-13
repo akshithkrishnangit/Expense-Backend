@@ -6,7 +6,7 @@ namespace FINANCETRACKER.Models
     {
         [Key]
         public int Id { get; set; }
-
+        public int UserId { get; set; }
         public decimal TotalBudget { get; set; }
     }
 }
