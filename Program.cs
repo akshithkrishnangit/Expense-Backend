@@ -6,27 +6,27 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------------- CONTROLLERS ----------------
 builder.Services.AddControllers();
 
-// ---------------- DB (PostgreSQL) ----------------
+// DB
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// ---------------- CORS ----------------
+// CORS (IMPORTANT)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
-// ---------------- JWT AUTH ----------------
+// JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
@@ -36,7 +36,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
@@ -49,11 +48,9 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// ---------------- MIDDLEWARE ORDER (VERY IMPORTANT) ----------------
+app.UseRouting();              // ✅ IMPORTANT
 
-
-
-app.UseCors("AllowAll");   // ✅ MUST be here (before auth)
+app.UseCors("AllowAll");       // ✅ MUST be after routing
 
 app.UseAuthentication();
 app.UseAuthorization();

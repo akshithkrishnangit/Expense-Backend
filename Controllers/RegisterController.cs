@@ -10,7 +10,7 @@ using System.Text;
 namespace FINANCETRACKER.Controllers
 {
 
-    [Route("api/auth/")] //base URL So your API starts with:
+    [Route("api/auth")] //base URL So your API starts with:
     [ApiController]
     public class RegisterController : ControllerBase
     {
