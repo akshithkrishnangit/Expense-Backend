@@ -21,5 +21,6 @@ namespace FINANCETRACKER.Data
 
         public DbSet<ExpenseModel> Expenses { get; set; }
         public DbSet<BudgetModel> Budgets { get; set; }
+        public DbSet<UserModel> USERS { get; set; }
     }
 }
