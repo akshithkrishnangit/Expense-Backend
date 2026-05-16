@@ -1,62 +1,59 @@
 using FINANCETRACKER.Data;
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---------------- CONTROLLERS ----------------
 builder.Services.AddControllers();
 
+// ---------------- DB (PostgreSQL) ----------------
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-    builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
+// ---------------- CORS ----------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        policy => policy.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
 });
 
-builder.Services.AddAuthentication(
-    JwtBearerDefaults.AuthenticationScheme
-)
+// ---------------- JWT AUTH ----------------
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
-    options.TokenValidationParameters =
-        new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
 
-            ValidIssuer =
-                builder.Configuration["Jwt:Issuer"],
-
-            ValidAudience =
-                builder.Configuration["Jwt:Audience"],
-
-            IssuerSigningKey =
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(
-                        builder.Configuration["Jwt:Key"]
-                    )
-                )
-        };
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])
+        )
+    };
 });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+// ---------------- MIDDLEWARE ORDER (VERY IMPORTANT) ----------------
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");   // ✅ MUST be here (before auth)
 
 app.UseAuthentication();
 app.UseAuthorization();
