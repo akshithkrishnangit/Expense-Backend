@@ -51,7 +51,7 @@ var app = builder.Build();
 
 // ---------------- MIDDLEWARE ORDER (VERY IMPORTANT) ----------------
 
-app.UseHttpsRedirection();
+
 
 app.UseCors("AllowAll");   // ✅ MUST be here (before auth)
 
