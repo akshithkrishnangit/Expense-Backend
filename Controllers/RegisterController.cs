@@ -1,16 +1,15 @@
 ﻿using FINANCETRACKER.Models;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
 namespace FINANCETRACKER.Controllers
 {
-
-    [Route("api/auth")] //base URL So your API starts with:
+    [Route("api/auth")]
     [ApiController]
     public class RegisterController : ControllerBase
     {
@@ -20,45 +19,51 @@ namespace FINANCETRACKER.Controllers
         {
             _configuration = configuration;
         }
+
+        // ================= REGISTER =================
         [HttpPost("register")]
         public IActionResult Register(RegisterModel request)
         {
-            using (SqlConnection conn =
-                   new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+            using (var conn = new NpgsqlConnection(
+                _configuration.GetConnectionString("DefaultConnection")))
             {
                 conn.Open();
 
+                // Check if username exists
                 string checkQuery = @"SELECT COUNT(*) 
-                              FROM USERS
-                              WHERE USERNAME = @USERNAME";
+                                      FROM USERS
+                                      WHERE USERNAME = @USERNAME";
 
-                SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-
-                checkCmd.Parameters.AddWithValue("@USERNAME", request.username);
-
-                int userExists = (int)checkCmd.ExecuteScalar();
-
-                if (userExists > 0)
+                using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
                 {
-                    return BadRequest(new
+                    checkCmd.Parameters.AddWithValue("@USERNAME", request.username);
+
+                    int userExists = Convert.ToInt32(checkCmd.ExecuteScalar());
+
+                    if (userExists > 0)
                     {
-                        success = false,
-                        message = "Username already exists"
-                    });
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Username already exists"
+                        });
+                    }
                 }
 
-                string insertQuery = @"INSERT INTO USERS(NAME, USERNAME, PASSWORD,CREATED_DATE)
-                               VALUES(@NAME, @USERNAME, @PASSWORD,GETDATE())";
+                // Insert user
+                string insertQuery = @"INSERT INTO USERS(NAME, USERNAME, PASSWORD, CREATED_DATE)
+                                       VALUES(@NAME, @USERNAME, @PASSWORD, NOW())";
 
-                SqlCommand cmd = new SqlCommand(insertQuery, conn); 
+                using (var cmd = new NpgsqlCommand(insertQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@NAME", request.Name);
+                    cmd.Parameters.AddWithValue("@USERNAME", request.username);
 
-                cmd.Parameters.AddWithValue("@NAME", request.Name);
-                cmd.Parameters.AddWithValue("@USERNAME", request.username);
-                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.password);
+                    string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.password);
+                    cmd.Parameters.AddWithValue("@PASSWORD", hashedPassword);
 
-                cmd.Parameters.AddWithValue("@PASSWORD", hashedPassword);
-
-                cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
+                }
 
                 return Ok(new
                 {
@@ -67,81 +72,77 @@ namespace FINANCETRACKER.Controllers
                 });
             }
         }
+
+        // ================= LOGIN =================
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
-            using (SqlConnection conn =
-                   new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+            using (var conn = new NpgsqlConnection(
+                _configuration.GetConnectionString("DefaultConnection")))
             {
                 conn.Open();
 
-                string query = @"SELECT ID, NAME,PASSWORD
-                         FROM USERS
-                         WHERE USERNAME COLLATE SQL_Latin1_General_CP1_CS_AS = @Username";
-                         
+                string query = @"SELECT ID, NAME, PASSWORD
+                                 FROM USERS
+                                 WHERE USERNAME = @Username";
 
-                SqlCommand cmd = new SqlCommand(query, conn);
-
-                cmd.Parameters.AddWithValue("@Username", request.Username);
-                
-
-                SqlDataReader reader = cmd.ExecuteReader();
-
-                if (reader.Read())
+                using (var cmd = new NpgsqlCommand(query, conn))
                 {
-                    string storedPassword = reader["PASSWORD"].ToString();
+                    cmd.Parameters.AddWithValue("@Username", request.Username);
 
-                    bool isPasswordValid =
-                        BCrypt.Net.BCrypt.Verify(
-                            request.Password,
-                            storedPassword
-                        );
-
-                    if (isPasswordValid)
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        var claims = new[]
+                        if (reader.Read())
                         {
-        new Claim("UserId", reader["ID"].ToString()),
-        new Claim("Username", request.Username)
-    };
+                            string storedPassword = reader["PASSWORD"].ToString();
 
-                        var key = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(
-                                _configuration["Jwt:Key"]
-                            )
-                        );
+                            bool isPasswordValid =
+                                BCrypt.Net.BCrypt.Verify(request.Password, storedPassword);
 
-                        var creds = new SigningCredentials(
-                            key,
-                            SecurityAlgorithms.HmacSha256
-                        );
+                            if (isPasswordValid)
+                            {
+                                var claims = new[]
+                                {
+                                    new Claim("UserId", reader["ID"].ToString()),
+                                    new Claim("Username", request.Username)
+                                };
 
-                        var token = new JwtSecurityToken(
-                            issuer: _configuration["Jwt:Issuer"],
-                            audience: _configuration["Jwt:Audience"],
-                            claims: claims,
-                            expires: DateTime.Now.AddDays(1),
-                            signingCredentials: creds
-                        );
+                                var key = new SymmetricSecurityKey(
+                                    Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])
+                                );
 
-                        var jwt = new JwtSecurityTokenHandler()
-                            .WriteToken(token);
+                                var creds = new SigningCredentials(
+                                    key,
+                                    SecurityAlgorithms.HmacSha256
+                                );
 
-                        return Ok(new
-                        {
-                            success = true,
-                            message = "Login Successful",
-                            token = jwt,
-                            userId = reader["ID"],
-                            username = request.Username
-                        });
+                                var token = new JwtSecurityToken(
+                                    issuer: _configuration["Jwt:Issuer"],
+                                    audience: _configuration["Jwt:Audience"],
+                                    claims: claims,
+                                    expires: DateTime.UtcNow.AddDays(1),
+                                    signingCredentials: creds
+                                );
+
+                                var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+                                return Ok(new
+                                {
+                                    success = true,
+                                    message = "Login Successful",
+                                    token = jwt,
+                                    userId = reader["ID"],
+                                    username = request.Username
+                                });
+                            }
+                        }
                     }
                 }
 
                 return Unauthorized(new
                 {
                     success = false,
-                    message = "Invalid Email or Password"
+                    message = "Invalid Username or Password"
                 });
             }
         }
