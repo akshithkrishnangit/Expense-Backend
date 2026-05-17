@@ -3,25 +3,26 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FINANCETRACKER.Models
 {
+    [Table("Expenses")]
     public class ExpenseModel
     {
         [Key]
-        [Column("ID")]
+        [Column("Id")]
         public int Id { get; set; }
 
-        [Column("USER_ID")]
+        [Column("UserId")]
         public int UserId { get; set; }
 
-        [Column("NAME")]
+        [Column("Name")]
         public string Name { get; set; }
 
-        [Column("AMOUNT")]
+        [Column("Amount")]
         public decimal Amount { get; set; }
 
-        [Column("CATEGORY")]
+        [Column("Category")]
         public string Category { get; set; }
 
-        [Column("DATE")]
+        [Column("Date")]
         public DateTime Date { get; set; }
     }
 }
