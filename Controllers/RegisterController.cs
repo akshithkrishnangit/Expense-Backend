@@ -31,7 +31,7 @@ namespace FINANCETRACKER.Controllers
 
                 // Check if username exists
                 string checkQuery = @"SELECT COUNT(*) 
-                                      FROM USERS
+                                      FROM users
                                       WHERE USERNAME = @USERNAME";
 
                 using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
@@ -51,7 +51,7 @@ namespace FINANCETRACKER.Controllers
                 }
 
                 // Insert user
-                string insertQuery = @"INSERT INTO USERS(NAME, USERNAME, PASSWORD, CREATED_DATE)
+                string insertQuery = @"INSERT INTO users(NAME, USERNAME, PASSWORD, CREATED_DATE)
                                        VALUES(@NAME, @USERNAME, @PASSWORD, NOW())";
 
                 using (var cmd = new NpgsqlCommand(insertQuery, conn))
@@ -83,7 +83,7 @@ namespace FINANCETRACKER.Controllers
                 conn.Open();
 
                 string query = @"SELECT ID, NAME, PASSWORD
-                                 FROM USERS
+                                 FROM users
                                  WHERE USERNAME = @Username";
 
                 using (var cmd = new NpgsqlCommand(query, conn))
