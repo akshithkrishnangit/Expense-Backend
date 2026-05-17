@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FINANCETRACKER.Models
+[Table("Budgets")]
+public class BudgetModel
 {
-    public class BudgetModel
-    {
-        [Key]
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public decimal TotalBudget { get; set; }
-    }
+    [Key]
+    [Column("Id")]
+    public int Id { get; set; }
+
+    [Column("UserId")]
+    public int UserId { get; set; }
+
+    [Column("TotalBudget")]
+    public decimal TotalBudget { get; set; }
 }
