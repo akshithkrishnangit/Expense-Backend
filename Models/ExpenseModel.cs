@@ -1,15 +1,27 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FINANCETRACKER.Models
 {
     public class ExpenseModel
     {
-        [Key] // optional but good practice
+        [Key]
+        [Column("ID")]
         public int Id { get; set; }
-        public int UserId { get; set; }   // ✅ ADD THIS
+
+        [Column("USER_ID")]
+        public int UserId { get; set; }
+
+        [Column("NAME")]
         public string Name { get; set; }
+
+        [Column("AMOUNT")]
         public decimal Amount { get; set; }
+
+        [Column("CATEGORY")]
         public string Category { get; set; }
+
+        [Column("DATE")]
         public DateTime Date { get; set; }
     }
 }
