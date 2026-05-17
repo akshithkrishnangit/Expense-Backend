@@ -82,7 +82,7 @@ namespace FINANCETRACKER.Controllers
             {
                 conn.Open();
 
-                string query = @"SELECT ID, NAME, PASSWORD
+                string query = @"SELECT ""ID"", ""NAME"", ""PASSWORD""
                                  FROM ""USERS""
                                  WHERE ""USERNAME"" = @Username";
 
