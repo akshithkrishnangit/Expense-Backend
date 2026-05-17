@@ -22,6 +22,9 @@ namespace FINANCETRACKER.Controllers
         [HttpPost("add")]
         public IActionResult AddExpense([FromBody] ExpenseModel req)
         {
+            // FIX UTC ISSUE
+            req.Date = DateTime.SpecifyKind(req.Date, DateTimeKind.Utc);
+
             _context.Expenses.Add(req);
             _context.SaveChanges();
 
@@ -51,7 +54,9 @@ namespace FINANCETRACKER.Controllers
             expense.Name = req.Name;
             expense.Amount = req.Amount;
             expense.Category = req.Category;
-            expense.Date = req.Date;
+
+            // FIX UTC ISSUE
+            expense.Date = DateTime.SpecifyKind(req.Date, DateTimeKind.Utc);
 
             _context.SaveChanges();
 
